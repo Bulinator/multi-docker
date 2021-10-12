@@ -1,0 +1,28 @@
+language: generic
+dist: xenial
+
+os:
+  - linux
+
+services:
+  - docker
+
+before_install:
+  - docker build -t speudyland/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true speudyland/react-test npm test -- --coverage
+
+# if dev is ok, build the production
+after_success:
+  - docker build -t speudyland/multi-client ./client
+  - docker build -t speudyland/multi-nginx ./nginx
+  - docker build -t speudyland/multi-server ./server
+  - docker build -t speudyland/multi-worker ./worker
+  # Log in to the docker CLI (create travis var env)
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  # Take those images and push them to docker hub
+  - docker push speudyland/multi-client
+  - docker push speudyland/multi-nginx
+  - docker push speudyland/multi-server
+  - docker push speudyland/multi-worker
